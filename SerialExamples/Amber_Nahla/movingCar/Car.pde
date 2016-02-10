@@ -19,14 +19,14 @@ class Car {
     rect(xPos, yPos, 30, 60);
   }
 
-  void update(float speed, float xIncDec) {
+  void update(float speed) {
     ySpeed = speed;
-    
-    xPos = xPos+xIncDec;
-}
+  }
 
-  void drive() {
+  void drive(float xIncDec) {
+    xPos = xPos+xIncDec;
     yPos = yPos + ySpeed;
+    
     if (yPos > height+30) {
       yPos = -30;
     }
