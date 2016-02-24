@@ -1,15 +1,12 @@
 /*
- connect to server
+  connect to server
 
- This sketch connects to a a web server and makes a request
- using a Wiznet Ethernet shield. You can use the Arduino Ethernet shield, or
- the Adafruit Ethernet shield, either one will work, as long as it's got
- a Wiznet Ethernet module on board.
+  This sketch connects to a a web server and makes a request. 
+  The page returns a randomly generated nyumber between
+  0 and 255, which changes the brightness level of a conected
+  LED. The example uses DHCP for addressing.
 
- This example uses DNS, by assigning the Ethernet client with a MAC address,
- IP address, and DNS address.
-
- */
+*/
 
 #include <SPI.h>
 #include <Ethernet.h>
@@ -26,8 +23,9 @@ byte mac[] = {
 // initialize the library instance:
 EthernetClient client;
 
-String value;
-
+char value[] = "0000";
+int stringPos = 0;
+boolean startRead = false;
 char server[] = "neteverything.nyuad.im";
 
 unsigned long lastConnectionTime = 0;             // last time you connected to the server, in milliseconds
@@ -50,9 +48,26 @@ void loop() {
   // if there's incoming data from the net connection.
   // send it out the serial port.
   if (client.available()) {
-    value = "";
     char c = client.read();
-    Serial.write(c);
+    if (c == '+') { // beginning char
+      startRead = true; // start reading to string
+      for (int i = 0; i < 4; i++) {
+        value[i] = ' ';
+      }
+      c = client.read();
+    }
+    if (c != '~' && startRead) {
+      value[stringPos] = c;
+      stringPos++;
+    } else if (c == '~' && startRead){
+      startRead = false;
+      stringPos = 0;
+      String outPut(value);
+      int ledVal = outPut.toInt();
+      Serial.println(ledVal);
+      analogWrite(3, ledVal);
+    }
+
   }
 
   // if ten seconds have passed since your last connection,
@@ -60,14 +75,11 @@ void loop() {
   if (millis() - lastConnectionTime > postingInterval) {
     httpRequest();
   }
-
 }
 
 // this method makes a HTTP connection to the server:
 void httpRequest() {
-  // close any connection before send a new request.
   client.stop();
-
   // if there's a successful connection:
   if (client.connect(server, 80)) {
     Serial.println("connected.... ");
@@ -77,7 +89,6 @@ void httpRequest() {
     client.println("User-Agent: arduino-ethernet");
     client.println("Connection: close");
     client.println();
-
     // note the time that the connection was made:
     lastConnectionTime = millis();
   } else {
